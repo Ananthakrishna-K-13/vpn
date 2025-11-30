@@ -44,7 +44,7 @@ MY_IP="10.13.13.99"
 SERVER_PUB=$(kubectl exec deployment/vpn-gateway -- wg show wg0 public-key)
 MINI_IP=$(minikube ip)
 
-cat <<EOF >     
+cat <<EOF > manual_vpn.conf
 [Interface]
 PrivateKey = $CLIENT_PRIV
 Address = $MY_IP/32
@@ -82,7 +82,7 @@ Note: if connecting to vpn casues wifi to stop working, then fix some wifi power
     sudo wg show
     ```
 
-    Look for: **latest handshake: X seconds ago** . If found good, we are on track, else some error.
+    Look for: **latest handshake: X seconds ago** . If found ,then good, else some error.
 
 2.  **Access the Hidden Webpage:**
 
@@ -94,7 +94,7 @@ Note: if connecting to vpn casues wifi to stop working, then fix some wifi power
 
     Browse that address on browser and you will see `Welcome to nginx!` page
 
-    You can check switichng vpn off and browing hte same webserver, and then switrch on and browse the same webserver
+    You can check switichng vpn off and browing the same webserver, and then switch on and browse the same webserver
 
 ```
     # Switches the vpn on
