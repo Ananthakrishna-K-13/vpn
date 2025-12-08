@@ -2,13 +2,23 @@
 # VPN
 
 ```
-docker compose up --build
+docker build -t app-image:latest ./app
+docker build -t vpn-image:latest ./vpn
+
+eval $(minikube docker-env)
+
+kubectl apply -f k8s/main.yaml
+
+kubectl port-forward service/nginx 9000:80
+kubectl port-forward service/prometheus 9090:9090
 ```
 
 go to
 
 ```
-localhost:9000
+localhost:9000 -> application
+localhost:9090 -> prometheus dashboard
+
 ```
 
 and test
@@ -18,10 +28,3 @@ traffic goes
 ```
 local -> nginx rev proxy -> vpn -> app
 ```
-
-todo
-
-- add jenkins and ansible (ill do)
-- add k8s (someone do plz)
-- add elk (someone do plz)
-- other stuff like docs/metrics/grafana (ill do)
