@@ -5,3 +5,7 @@ scrape_configs:
   - job_name: vpn
     static_configs:
       - targets: ["vpn:9001"]
+
+  - job_name: app
+    static_configs:
+      - targets: ["app:9002"]

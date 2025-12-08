@@ -4,7 +4,7 @@ import os
 
 JWT_SECRET = os.environ.get("JWT_SECRET", "devsecret")
 JWT_ALGO = "HS256"
-JWT_EXP_MINUTES = 15
+JWT_EXP_MINUTES = 10
 
 def create_jwt(username: str):
     exp = datetime.utcnow() + timedelta(minutes=JWT_EXP_MINUTES)
