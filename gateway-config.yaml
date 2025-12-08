@@ -3,7 +3,7 @@ kind: ConfigMap
 metadata:
   name: gateway-conf
 data:
-  nginx.conf: |
+  nginx.conf: | 
     events { worker_connections 1024; }
     http {
         server {
