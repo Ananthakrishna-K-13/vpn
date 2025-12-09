@@ -10,16 +10,16 @@ data:
       }
     }
 
-    filter {
-      # optional parsing/filtering (customize as needed)
-      if "nginx" in [fileset][module] or [source] =~ "nginx" {
-        # try to grok nginx common log format
-        grok {
-          match => { "message" => "%{COMBINEDAPACHELOG}" }
-          overwrite => [ "message" ]
-        }
-      }
-    }
+    # filter {
+    #   # optional parsing/filtering (customize as needed)
+    #   if "nginx" in [fileset][module] or [source] =~ "nginx" {
+    #     # try to grok nginx common log format
+    #     grok {
+    #       match => { "message" => "%{COMBINEDAPACHELOG}" }
+    #       overwrite => [ "message" ]
+    #     }
+    #   }
+    # }
 
     output {
       elasticsearch {

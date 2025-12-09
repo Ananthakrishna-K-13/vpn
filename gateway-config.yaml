@@ -6,6 +6,9 @@ data:
   nginx.conf: | 
     events { worker_connections 1024; }
     http {
+        access_log  /dev/stdout;
+        error_log   /dev/stderr;
+
         server {
             listen 80;
             
