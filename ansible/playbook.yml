@@ -13,8 +13,28 @@
     app_port: 30030
     grafana_port: 30060
     kibana_port: 30090
+    minikube_cpus: 4
+    minikube_memory: 6144
+    minikube_driver: docker
 
   tasks:
+  - name: Delete existing Minikube cluster (if any)
+    command: minikube delete
+    register: delete_result
+    # Prevent failure if minikube is not currently running
+    ignore_errors: true 
+
+  - name: Start Minikube with required resources
+    command: >
+      minikube start 
+      --cpus={{ minikube_cpus }} 
+      --memory={{ minikube_memory }} 
+      --driver={{ minikube_driver }}
+    register: start_output
+
+  - name: Display Minikube status
+    debug:
+      msg: "{{ start_output.stdout_lines }}"
 
   - name: Set Docker environment to point to Minikube
     shell: eval $(minikube docker-env)
