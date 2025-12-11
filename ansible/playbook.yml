@@ -5,8 +5,10 @@
   gather_facts: false
 
   vars:
-    app_image: app-image:latest
-    vpn_image: vpn-image:latest
+    app_image: "mydockerhubuser/spe-app:latest" # need to replace
+    vpn_image: "mydockerhubuser/spe-vpn:latest" # need to replace
+    local_app_path: ../app
+    local_vpn_path: ../vpn
     k8s_dir: ../k8s
     app_port: 30030
     grafana_port: 30060
@@ -18,15 +20,13 @@
   tasks:
   - name: Delete existing Minikube cluster (if any)
     command: minikube delete
-    register: delete_result
-    # Prevent failure if minikube is not currently running
-    ignore_errors: true 
+    ignore_errors: true
 
   - name: Start Minikube with required resources
     command: >
-      minikube start 
-      --cpus={{ minikube_cpus }} 
-      --memory={{ minikube_memory }} 
+      minikube start
+      --cpus={{ minikube_cpus }}
+      --memory={{ minikube_memory }}
       --driver={{ minikube_driver }}
     register: start_output
 
@@ -34,11 +34,27 @@
     debug:
       msg: "{{ start_output.stdout_lines }}"
 
-  - name: Build app image inside Minikube
-    command: minikube image build -t {{ app_image }} ../app
+  - name: Handle app image
+    block:
+      - name: Pull app image from registry
+        command: minikube image pull {{ app_image }}
+        when: app_image != ""
 
-  - name: Build vpn image inside Minikube
-    command: minikube image build -t {{ vpn_image }} ../vpn
+      - name: Build app image locally
+        command: minikube image build -t spe-app {{ local_app_path }}
+        when: app_image == ""
+        register: app_image_built
+
+  - name: Handle vpn image
+    block:
+      - name: Pull vpn image from registry
+        command: minikube image pull {{ vpn_image }}
+        when: vpn_image != ""
+
+      - name: Build vpn image locally
+        command: minikube image build -t spe-vpn {{ local_vpn_path }}
+        when: vpn_image == ""
+        register: vpn_image_built
 
   - name: Create namespaces
     include_role:
