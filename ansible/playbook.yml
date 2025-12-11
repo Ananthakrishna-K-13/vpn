@@ -5,8 +5,8 @@
   gather_facts: false
 
   vars:
-    app_image: "mydockerhubuser/spe-app:latest" # need to replace
-    vpn_image: "mydockerhubuser/spe-vpn:latest" # need to replace
+    app_image: "pratster20/app-image:latest" # need to replace
+    vpn_image: "pratster20/vpn-image:latest" # need to replace
     local_app_path: ../app
     local_vpn_path: ../vpn
     k8s_dir: ../k8s
@@ -44,7 +44,7 @@
         when: app_image != ""
 
       - name: Build app image locally
-        command: minikube image build -t spe-app {{ local_app_path }}
+        command: minikube image build -t app-image {{ local_app_path }}
         when: app_image == ""
         register: app_image_built
 
@@ -55,7 +55,7 @@
         when: vpn_image != ""
 
       - name: Build vpn image locally
-        command: minikube image build -t spe-vpn {{ local_vpn_path }}
+        command: minikube image build -t vpn-image {{ local_vpn_path }}
         when: vpn_image == ""
         register: vpn_image_built
 
