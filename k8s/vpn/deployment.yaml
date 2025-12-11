@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: vpn
-          image: vpn-image:latest
+          image: pratster20/vpn-image:latest
           imagePullPolicy: Never
           ports:
             - containerPort: 9001
