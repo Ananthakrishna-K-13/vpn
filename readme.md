@@ -132,6 +132,13 @@ ansible-playbook -i inventory.ini playbook.yml --vault-password-file password.tx
 
 in the Jenkinsfile.
 
+## Innovation
+### White-Box Application Telemetry & Security Monitoring
+Most standard Kubernetes setups only monitor infrastructure metrics like CPU and RAM. We innovated by implementing **White-Box Application Telemetry** directly within our VPN's Python code.
+
+* **Custom Metric Instrumentation:** We instrumented our application to expose internal logic states, specifically creating custom Prometheus counters for successful VPN tunnels and invalid authentication attempts.
+* **Security-First Observability:** By graphing `vpn_jwt_invalid_total`, we transformed Grafana from a performance monitor into a security dashboard. This allows us to detect potential security incidents (like token tampering or brute-force attacks) in real-time, which would be invisible to standard infrastructure monitoring.
+
 ## Steps to Run
 
 Ensure you have the following things installed:
