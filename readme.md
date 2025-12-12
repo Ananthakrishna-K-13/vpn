@@ -141,7 +141,8 @@ Ensure you have the following things installed:
 - Ansible: Configuration management
 - Jenkins: For CI/CD.
 
-If Jenkins is configured correctly with github webhooks and dockerhub creds, a push to this repository will trigger the pipeline which will start the application locally.
+If Jenkins is configured correctly with github webhooks and dockerhub creds, a push to this repository will trigger the pipeline which will start the application locally. Make sure to install the docker-pipeline plugin in jenkins. Jenkins killes the port-forwarding process as soon as the job finishes. Jenkins has a feature called "Process Tree Killer" that cleans up any background processes started by a build to prevent memory leaks. Hence you will have to manually forward the ports as is in the ansible playbook.
+
 
 If not, you can use Ansible:
 
@@ -165,7 +166,7 @@ which will start the playbook. Subsequently, services will be available on the p
 
 ## Authors
 
-- [Ananthakrishna K](https://github.com/Ananthakrishna-K-13)
 - [Prateek Rath](https://github.com/prateek-rath)
 - [Mohit Naik](https://github.com/mohitiiitb)
+- [Ananthakrishna K](https://github.com/Ananthakrishna-K-13)
 

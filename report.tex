@@ -1,0 +1,226 @@
+\documentclass[12pt, a4paper]{article}
+
+% Essential Packages
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{graphicx}   % For images
+\usepackage{hyperref}   % For clickable links and TOC
+\usepackage{listings}   % For code blocks
+\usepackage{xcolor}     % For colors
+\usepackage{float}      % For image positioning
+\usepackage{parskip}    % For paragraph spacing
+
+% Page Geometry (Margins)
+\geometry{
+ a4paper,
+ total={170mm,257mm},
+ left=25mm,
+ top=25mm,
+}
+
+% Hyperlink setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    filecolor=magenta,      
+    urlcolor=blue,
+    pdftitle={VPN Implementation Report},
+}
+
+% Code Listing Customization
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+\lstset{style=mystyle}
+
+% Title Information
+\title{\textbf{VPN Implementation with Virtual Network Functions}}
+\author{
+    \textbf{Prateek Rath} \\  IMT2022017
+    \and 
+    \textbf{Mohit Naik} \\ IMT2022076
+    \and 
+    \textbf{Ananthakrishna K} \\ IMT2022086
+}
+\date{}
+
+\begin{document}
+
+% Generate Title Page
+\maketitle
+\thispagestyle{empty}
+\newpage
+
+% Generate Table of Contents
+\tableofcontents
+\newpage
+
+% Start of Content
+\section{Introduction}
+A Virtual Network Function (VNF) is essentially a software implementation of a network function like a firewall, router, load balancer, VPN, etc. that runs on virtualized hardware instead of dedicated appliances, and can be scaled, orchestrated, and deployed using various DevOps tools and techniques. In this project, we have tried to implement a simple VPN along with a reverse proxy as virtual network functions, which we then deploy and monitor using various software tools.
+
+\section{Application}
+The basic idea is to have an application which runs on a protected network i.e. is not visible/accessible externally. Users who wish to access the application need to connect to the VPN first which is on the same network as the application, after which all requests to the application are forwarded through the VPN. We also add an Nginx reverse proxy at the front which takes all requests, filters out unwanted ones, and performs basic rate limiting.
+
+\subsection{Target App}
+This is a simple FastAPI application which is not externally exposed. It has just one functional endpoint \texttt{/status}, which returns an \texttt{OK} when requested.
+
+\subsection{VPN}
+The core VPN implementation. Users can connect to the VPN via providing their credentials, after which they are able to access the above application. When they disconnect, they are unable to access it again.
+
+\subsection{Nginx}
+We add a reverse proxy in front of the VPN for protection. It filters out any unwanted requests, and prevents the VPN from being bombarded via some rate limiting. It also becomes a central point for all requests so that the VPN and the target application can remain unexposed externally.
+
+\section{DevOps Components}
+We've used a modular architecture, with each of the above components as a separate service with its own Docker containers, with Kubernetes as the orchestration mechanism and Dockerhub as the container registry. We've also added tools like Prometheus and Grafana for monitoring metrics, and the ELK stack (Elasticsearch, Logstash, Kibana) with Filebeat, for logging. Furthermore, we've used Jenkins for continuous integration and deployment (CI/CD), and Ansible for infrastructure automation.
+
+% NOTE: Make sure the file 'assets/arch.png' exists in your directory, or comment this block out.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{assets/arch.png}
+    \caption{Architecture}
+    \label{fig:architecture}
+\end{figure}
+
+\subsection{Containerization and Orchestration}
+All the containerization and orchestration is present in the \texttt{k8s} folder. Broadly, we can divide our application's main functionality into:
+\begin{itemize}
+    \item the nginx reverse proxy
+    \item the vpn gateway where auth takes place
+    \item the app itself which handles requests.
+\end{itemize}
+
+We have the following deployments:
+\begin{itemize}
+    \item app
+    \item elastic search
+    \item grafana
+    \item kibana
+    \item nginx
+    \item prometheus
+    \item vpn
+\end{itemize}
+
+Some of the deployments such as logstash, prometheus etc use configmaps to store configurations that are then mounted in the deployed containers for use. Every deployment is exposed to the rest of the cluster via a service. Port forwarding helping us access those services from localhost.
+
+Typically, filebeat is used as a daemonset and not a deployment, because it needs to read log paths from every node. Daemonsets automatically track cluster scaling i.e. when a new node joins, filebeat automatically starts tracking that node. Here since we are running on minikube (a single node cluster), it doesn't matter as much.
+
+Each deployment folder is armed with a \texttt{kustomization.yaml} file that simply allows us to use the \texttt{-k} flag and apply all yaml files within a folder via a single command.
+
+\subsection{Monitoring}
+We've used Prometheus to scrape metrics from the app and vpn pods, and Grafana to visualize these metrics. The following metrics are scraped:
+\begin{itemize}
+    \item Number of \texttt{/status} requests allowed by the vpn
+    \item Number of api requests which fail due to invalid/expired JWT tokens
+\end{itemize}
+
+These metrics are sent to Grafana, which aggregates them and displays them as graphs/dashboards. The exact configuration for the dashboards has to be specified as JSON, which we have embedded into the k8s manifests for Grafana.
+
+\subsection{Logging}
+We use the Elastic Stack (ELK Stack)—Filebeat, Logstash, Elasticsearch, and Kibana—to collect, process, store, and visualize logs.
+
+Filebeat runs on the application nodes and collects log files or container logs. It forwards these logs to Logstash or directly to Elasticsearch. Logstash is an optional but powerful processing layer where logs can be enriched, parsed, filtered, or transformed before they are indexed. The processed logs are then sent to Elasticsearch, which stores them in indices designed for fast search and analytics. Finally, Kibana sits on top of Elasticsearch and provides dashboards, charts, and real-time visualizations that help us understand system behavior, troubleshoot issues, and monitor application health.
+
+This pipeline enables efficient log ingestion, structured indexing, and meaningful insights from logs in real time.
+
+For this project we present 5 visualizations:
+\begin{itemize}
+    \item Logs per container bar chart
+    \item Logs over time line chart
+    \item Error Logs v/s Normal Logs over time
+    \item Top 5 pods with the most error logs
+    \item Log Volume by Namespace Pie chart
+\end{itemize}
+
+To view these:
+\begin{enumerate}
+    \item Deploy the application via the jenkins pipeline.
+    \item Switch to the jenkins user by running \texttt{sudo su - jenkins}
+    \item Run \texttt{kubectl port-forward svc/kibana 30090:5601 -n logging}
+    \item Head to \url{http://localhost:5601} in the browser
+    \item Click on $\equiv$ (menu) icon in the top-left corner
+    \item Scroll to the bottom and click on Stack Management under the Management Section
+    \item In Stack Management, click on Saved Objects under Kibana in the left pane
+    \item Click import and then import the \texttt{kibana\_dashboard.ndjson} file present in the viz folder of the github repo
+    \item Refresh the visualization to see real time updates.
+\end{enumerate}
+
+\subsection{CI/CD}
+We've used Jenkins for continuous integration and continuous deployment. On each push to any of the github branches, a webhook triggers the pipeline, which checks out the recent commits, builds the updated images for the app and vpn, and pushes them to a Docker Hub registry. It then runs the ansible playbook locally.
+
+\subsection{Infrastructure}
+We've used Ansible for configuration management and infrastructure automation. When triggered via the Jenkins pipeline, ansible first stops the existing minikube cluster and starts a fresh one with specified memory and CPU requirements. It then pulls the required images from Docker Hub, and applies all k8s manifests following which the application is deployed. Since minikube with the docker driver does not expose ports externally, we need to do port forwarding, which is also done via the playbook. Finally, the application entrypoint (Nginx$\rightarrow$VPN), Grafana for checking metrics, and Kibana for checking logs, are available on separate ports.
+
+\subsubsection{Roles in Ansible}
+Ansible roles are useful to make the playbook smaller and easier to read. They split tasks into independent logical units which improves modularity, reusability and scalability. Since we had 3 namespaces \texttt{app}, \texttt{monitoring} and \texttt{logging}, we decided to have 4 roles, one for each plus one extra which creates these namespaces. This helped us to group deployments by their purpose, simplified the playbook, and will be easier to maintain in future when more functionalities might get added.
+
+\subsubsection{Ansible Vault}
+Ansible vault allows us to encrypt sensitive data such as passwords, API keys or other credentials within the project. We had a list of username-password pairs which were used to connect to the VPN. These were originally stored in a plain JSON file within the project, which is highly insecure. We then moved it to \texttt{secrets.yaml} in k8s which injected them at runtime, however they were still stored in plaintext. Ansible vault allows us to encrypt these secrets securely, and while running the playbook, a password or a password file can be provided to decrypt these secrets back. This is done using a Jinja2 template which renders the k8s secret from the vault file, and during playbook execution, ansible injects decrypted credentials from the vault file into the template which is then applied to k8s.
+
+We can encrypt the secrets as:
+\begin{lstlisting}[language=bash]
+ansible-vault encrypt ansible/group_vars/all/vpn_creds.yml --vault-password-file password.txt
+\end{lstlisting}
+
+and then we can put:
+\begin{lstlisting}[language=bash]
+ansible-playbook -i inventory.ini playbook.yml --vault-password-file password.txt
+\end{lstlisting}
+in the Jenkinsfile.
+
+\section{Steps to Run}
+
+Ensure you have the following things installed:
+\begin{itemize}
+    \item Docker: Container runtime
+    \item Minikube \& kubectl: For container orchestration
+    \item Ansible: Configuration management
+    \item Jenkins: For CI/CD.
+\end{itemize}
+
+If Jenkins is configured correctly with github webhooks and dockerhub creds, a push to this repository will trigger the pipeline which will start the application locally. Make sure to install the \texttt{docker-pipeline} plugin in Jenkins. Jenkins kills the port-forwarding process as soon as the job finishes. Jenkins has a feature called ``Process Tree Killer'' that cleans up any background processes started by a build to prevent memory leaks. Hence you will have to manually forward the ports as is in the ansible playbook.
+
+If not, you can use Ansible:
+
+\begin{enumerate}
+    \item Clone the repository
+    \item Check \texttt{ansible/playbook.yaml} and set your minikube CPU and memory specs, and other parameters
+    \item In the project root, run:
+    \begin{lstlisting}[language=bash]
+ansible-playbook -i ./ansible/inventory.ini ./ansible/playbook.yml --vault-password-file ./ansible/password.txt
+    \end{lstlisting}
+    which will start the playbook. Subsequently, services will be available on the ports specified in the playbook.
+    \item The main app is intuitive to use, you can log in, check a request to \texttt{/status}, and send requests at a certain rate.
+    \item Grafana will then show you visualizations of metrics scraped by Prometheus.
+    \item First create a Data view with the pattern \texttt{filebeat-*}. Then, head to the Discover tab and filter logs as per requirements (e.g. \texttt{kubernetes.labels.app:app}). For a dashboard, detailed steps are mentioned in the logging section.
+\end{enumerate}
+
+\section{Authors}
+\begin{itemize}
+    \item Prateek Rath (IMT2022017)
+    \item Mohit Naik (IMT2022076)
+    \item Ananthakrishna K (IMT2022086)
+\end{itemize}
+
+\end{document}
